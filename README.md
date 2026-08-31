@@ -27,6 +27,11 @@ prioridad `min` (queda en el historial, no notifica). El cuerpo es JSON:
 
 Los mensajes con cualquier otro título se muestran como avisos.
 
+Conviene usar **dos topics por vigía**: uno para las alertas (el que suscribís en
+la app ntfy del teléfono) y otro para los latidos. Si van al mismo topic, la app
+se llena de JSON en vez de mostrarte solo lo que importa. El panel lee los dos;
+si declarás uno solo, ese lleva las dos cosas.
+
 ## Configuración
 
 Al abrirlo por primera vez pide un JSON:
@@ -36,7 +41,8 @@ Al abrirlo por primera vez pide un JSON:
   {
     "nombre": "Nombre del vigía",
     "vigila": "Qué está esperando",
-    "topic": "tu-topic-de-ntfy",
+    "topic": "topic-de-alertas",
+    "topicHb": "topic-de-latidos",
     "cadencia": 15,
     "horario": null
   }
@@ -45,6 +51,7 @@ Al abrirlo por primera vez pide un JSON:
 
 - `cadencia`: minutos esperados entre corridas. Si el último latido supera
   2,5 veces ese valor, el vigía aparece **atrasado**; más de 7,5 veces, **sin señal**.
+- `topicHb`: topic de los latidos. Opcional; sin él se usa `topic` para todo.
 - `horario`: `[8, 21]` si el monitor solo corre en esa franja — fuera de ella el
   silencio se muestra como **en pausa**, no como falla.
 

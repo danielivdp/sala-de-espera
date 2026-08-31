@@ -676,7 +676,13 @@ async function actualizar() {
   try {
     const porMonitor = await Promise.all(
       VIGIAS.map(async (mon) => {
-        const mensajes = await leerTopic(mon.topic);
+        // Dos topics por vigía: uno con las alertas (el que va en el teléfono)
+        // y otro con los latidos, para que la app ntfy no se llene de JSON.
+        // Si solo hay uno declarado, ese lleva las dos cosas.
+        const topics = [...new Set([mon.topic, mon.topicHb].filter(Boolean))];
+        const tandas = await Promise.all(topics.map(leerTopic));
+        const mensajes = tandas.flat();
+
         const latidos = mensajes
           .filter((m) => m.title === "hb")
           .map((m) => { try { return Object.assign({}, m, { datos: JSON.parse(m.message) }); } catch { return null; } })
