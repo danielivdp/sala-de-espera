@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sala de Espera</title>
+<meta name="description" content="Estado de los vigías: qué se liberó y si siguen despiertos.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EDF0F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1218" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sala de Espera">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #EDF0F4;
+    --surface:     #FFFFFF;
+    --surface-alt: #F5F7FA;
+    --line:        #D6DCE4;
+    --line-soft:   #E5EAF0;
+    --ink:         #131A22;
+    --ink-mid:     #5A6675;
+    --ink-faint:   #8B96A5;
+    --accent:      #2B5C8A;
+    --vivo:        #1B7355;
+    --vivo-bg:     #E2F0EA;
+    --atraso:      #99640F;
+    --atraso-bg:   #F7EEDC;
+    --caido:       #A63428;
+    --caido-bg:    #F8E6E3;
+    --pausa:       #5A6675;
+    --pausa-bg:    #E8ECF1;
+    --shadow:      0 1px 2px rgba(19, 26, 34, .06), 0 4px 14px rgba(19, 26, 34, .05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D1218;
+      --surface:     #151C25;
+      --surface-alt: #1B242F;
+      --line:        #2A3542;
+      --line-soft:   #212B36;
+      --ink:         #DFE6EE;
+      --ink-mid:     #98A5B4;
+      --ink-faint:   #6B7787;
+      --accent:      #7FB0DC;
+      --vivo:        #5CC79E;
+      --vivo-bg:     #143027;
+      --atraso:      #DFAA55;
+      --atraso-bg:   #33260F;
+      --caido:       #E88274;
+      --caido-bg:    #351916;
+      --pausa:       #98A5B4;
+      --pausa-bg:    #1E2831;
+      --shadow:      0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D1218;
+    --surface:     #151C25;
+    --surface-alt: #1B242F;
+    --line:        #2A3542;
+    --line-soft:   #212B36;
+    --ink:         #DFE6EE;
+    --ink-mid:     #98A5B4;
+    --ink-faint:   #6B7787;
+    --accent:      #7FB0DC;
+    --vivo:        #5CC79E;
+    --vivo-bg:     #143027;
+    --atraso:      #DFAA55;
+    --atraso-bg:   #33260F;
+    --caido:       #E88274;
+    --caido-bg:    #351916;
+    --pausa:       #98A5B4;
+    --pausa-bg:    #1E2831;
+    --shadow:      0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .marco {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: max(28px, env(safe-area-inset-top)) 20px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .barra {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--line);
+  }
+
+  h1 {
+    font-family: Archivo, ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 27px;
+    letter-spacing: -.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .subtitulo { color: var(--ink-mid); font-size: 14.5px; margin: 3px 0 0; }
+
+  .reloj { display: flex; align-items: center; gap: 10px; }
+
+  .sello {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  button {
+    font-family: "Source Sans 3", sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 13px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--surface-alt); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button[aria-busy="true"] { color: var(--ink-faint); cursor: progress; }
+  button.principal { background: var(--accent); color: #FFF; border-color: var(--accent); }
+  button.principal:hover { filter: brightness(1.08); }
+
+  .monitores { display: flex; flex-direction: column; gap: 16px; }
+
+  .tarjeta {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .cabecera {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .nombre {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: -.01em;
+    margin: 0;
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .que-vigila {
+    display: block;
+    font-family: "Source Sans 3", sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--ink-faint);
+    letter-spacing: 0;
+    margin-top: 1px;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .punto { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .pill.vivo   { color: var(--vivo);   background: var(--vivo-bg); }
+  .pill.atraso { color: var(--atraso); background: var(--atraso-bg); }
+  .pill.caido  { color: var(--caido);  background: var(--caido-bg); }
+  .pill.pausa  { color: var(--pausa);  background: var(--pausa-bg); }
+
+  .pill.vivo .punto { animation: latido 2.6s ease-in-out infinite; }
+  @keyframes latido { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .pill.vivo .punto { animation: none; } }
+
+  .desde {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .cuerpo { padding: 16px 18px 18px; }
+
+  .resumen {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .resumen.hay { color: var(--vivo); }
+  .resumen.mal { color: var(--caido); }
+
+  .nota { color: var(--ink-mid); font-size: 14px; margin: 6px 0 0; }
+
+  .dias {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .dia { display: grid; grid-template-columns: 128px 1fr; gap: 12px; align-items: baseline; }
+  @media (max-width: 540px) { .dia { grid-template-columns: 1fr; gap: 5px; } }
+
+  .fecha {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .horas { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .hora {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    background: var(--surface-alt);
+    border: 1px solid var(--line-soft);
+    border-radius: 5px;
+    padding: 3px 8px;
+    color: var(--ink);
+  }
+
+  .seccion-titulo {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 10px;
+  }
+
+  .avisos {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .aviso { display: grid; grid-template-columns: 92px 1fr; gap: 14px; background: var(--surface); padding: 12px 16px; }
+  @media (max-width: 540px) { .aviso { grid-template-columns: 1fr; gap: 3px; } }
+
+  .aviso time {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .aviso h3 { font-size: 15px; font-weight: 600; margin: 0 0 2px; color: var(--accent); }
+  .aviso p { margin: 0; font-size: 14px; color: var(--ink-mid); white-space: pre-wrap; }
+
+  .vacio {
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 20px 18px;
+    color: var(--ink-mid);
+    font-size: 14.5px;
+    text-align: center;
+  }
+
+  .pie {
+    color: var(--ink-faint);
+    font-size: 13px;
+    line-height: 1.65;
+    border-top: 1px solid var(--line-soft);
+    padding-top: 16px;
+  }
+
+  .alerta-red {
+    background: var(--caido-bg);
+    color: var(--caido);
+    border-radius: 8px;
+    padding: 11px 15px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* ---------- pantalla de configuración ---------- */
+
+  .config {
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 22px 20px;
+  }
+  .config h2 { font-family: Archivo, sans-serif; font-size: 18px; margin: 0 0 6px; }
+  .config p { color: var(--ink-mid); font-size: 14.5px; margin: 0 0 14px; max-width: 62ch; }
+
+  textarea {
+    width: 100%;
+    min-height: 190px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    resize: vertical;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .config-acciones { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .config-error { color: var(--caido); font-size: 13.5px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="marco">
+
+  <header class="barra">
+    <div>
+      <h1>Sala de Espera</h1>
+      <p class="subtitulo">Qué se liberó, y si los vigías siguen despiertos.</p>
+    </div>
+    <div class="reloj">
+      <span class="sello" id="sello"></span>
+      <button type="button" id="ajustes" hidden>Ajustes</button>
+      <button type="button" id="recargar" hidden>Actualizar</button>
+    </div>
+  </header>
+
+  <div id="error" hidden></div>
+
+  <!-- configuración: solo visible cuando no hay vigías guardados -->
+  <section class="config" id="config" hidden>
+    <h2>Configurá tus vigías</h2>
+    <p>
+      Esta página no guarda nada en ningún servidor: la configuración vive solo en
+      este navegador. Pegá el JSON con los vigías que querés seguir y sus topics de ntfy.
+    </p>
+    <textarea id="config-texto" spellcheck="false" aria-label="Configuración en JSON"></textarea>
+    <div class="config-acciones">
+      <button type="button" class="principal" id="guardar">Guardar</button>
+      <button type="button" id="cancelar" hidden>Cancelar</button>
+      <span class="config-error" id="config-error"></span>
+    </div>
+  </section>
+
+  <section class="monitores" id="monitores"></section>
+
+  <section id="seccion-avisos" hidden>
+    <h2 class="seccion-titulo">Avisos recientes</h2>
+    <div id="avisos"></div>
+  </section>
+
+  <footer class="pie">
+    Los vigías publican un latido cada corrida; esta página lee ese registro.
+    ntfy guarda <strong>12 horas</strong>, así que ves la ventana reciente, no el
+    historial completo. El aviso al teléfono llega por la app ntfy, no por acá.
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+const LLAVE = "sala-de-espera:vigias";
+
+const EJEMPLO = [
+  {
+    clave: "ejemplo",
+    nombre: "Nombre del vigía",
+    vigila: "Qué está esperando",
+    topic: "tu-topic-de-ntfy",
+    cadencia: 15,
+    horario: null
+  }
+];
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- configuración ---------- */
+
+function leerConfig() {
+  try {
+    const crudo = localStorage.getItem(LLAVE);
+    if (!crudo) return null;
+    const v = JSON.parse(crudo);
+    return Array.isArray(v) && v.length ? v : null;
+  } catch { return null; }
+}
+
+function guardarConfig(vigias) {
+  try {
+    localStorage.setItem(LLAVE, JSON.stringify(vigias));
+    return true;
+  } catch { return false; }
+}
+
+// La config puede llegar por el fragmento de la URL (#c=<base64>). El fragmento
+// nunca se envía al servidor; lo consumimos y lo borramos de la barra.
+function configDesdeURL() {
+  const hash = location.hash.replace(/^#/, "");
+  if (!hash.startsWith("c=")) return null;
+  try {
+    const json = decodeURIComponent(escape(atob(decodeURIComponent(hash.slice(2)))));
+    const v = JSON.parse(json);
+    return Array.isArray(v) && v.length ? v : null;
+  } catch { return null; }
+}
+
+function validar(v) {
+  if (!Array.isArray(v) || !v.length) throw new Error("tiene que ser una lista con al menos un vigía");
+  for (const m of v) {
+    if (!m || typeof m !== "object") throw new Error("cada vigía tiene que ser un objeto");
+    if (!m.topic) throw new Error("a un vigía le falta el campo topic");
+    if (!m.nombre) throw new Error("a un vigía le falta el campo nombre");
+  }
+  return v;
+}
+
+function mostrarConfig(actual) {
+  $("config").hidden = false;
+  $("config-texto").value = JSON.stringify(actual || EJEMPLO, null, 2);
+  $("cancelar").hidden = !actual;
+  $("config-error").textContent = "";
+  $("monitores").hidden = true;
+  $("seccion-avisos").hidden = true;
+  $("recargar").hidden = true;
+  $("ajustes").hidden = !actual;
+}
+
+function ocultarConfig() {
+  $("config").hidden = true;
+  $("monitores").hidden = false;
+  $("recargar").hidden = false;
+  $("ajustes").hidden = false;
+}
+
+/* ---------- lectura de ntfy ---------- */
+
+async function leerTopic(topic) {
+  const url = `https://ntfy.sh/${encodeURIComponent(topic)}/json?poll=1&since=all`;
+  const resp = await fetch(url, { cache: "no-store" });
+  if (!resp.ok) throw new Error(`ntfy respondió ${resp.status}`);
+  const texto = await resp.text();
+  return texto
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .filter((m) => m && m.event === "message");
+}
+
+/* ---------- estado ---------- */
+
+function haceCuanto(segundos) {
+  const min = Math.round(segundos / 60);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h ${min % 60} min`;
+  return `hace ${Math.floor(h / 24)} d`;
+}
+
+function enHorario(mon) {
+  if (!Array.isArray(mon.horario)) return true;
+  const h = new Date().getHours();
+  return h >= mon.horario[0] && h <= mon.horario[1];
+}
+
+// El estado sale de qué tan viejo es el último latido frente a la cadencia esperada.
+function evaluar(mon, latido) {
+  if (!latido) {
+    return { clase: "caido", texto: "sin señal",
+             nota: "No hay ningún latido en la ventana de 12 horas. Puede que el vigía no esté corriendo." };
+  }
+  const edad = (Date.now() - latido.time * 1000) / 1000;
+  const cadencia = Number(mon.cadencia) || 15;
+  const tolerancia = cadencia * 60 * 2.5;
+  if (edad <= tolerancia) return { clase: "vivo", texto: "al día", edad };
+  if (!enHorario(mon)) {
+    return { clase: "pausa", texto: "en pausa", edad,
+             nota: `Fuera de su franja (${mon.horario[0]}:00–${mon.horario[1]}:00). Retoma solo.` };
+  }
+  if (edad <= tolerancia * 3) {
+    return { clase: "atraso", texto: "atrasado", edad,
+             nota: `Debería correr cada ${cadencia} min y lleva más de eso callado.` };
+  }
+  return { clase: "caido", texto: "sin señal", edad,
+           nota: "Lleva demasiado sin reportar. Conviene revisar launchd o el cron en el Mac." };
+}
+
+function formatearFecha(f) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(f);
+  if (!m) return f;                                   // ya viene legible
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  const dias = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  return `${dias[d.getDay()]} ${m[3]}/${m[2]}`;
+}
+
+/* ---------- pintado ---------- */
+
+function pintarMonitor(mon, latido, estado) {
+  const datos = latido ? latido.datos : null;
+  const tarjeta = document.createElement("article");
+  tarjeta.className = "tarjeta";
+
+  const hayCupo = datos && Array.isArray(datos.detalle) && datos.detalle.length > 0;
+  const fallando = datos && datos.ok === false;
+
+  const cabecera = document.createElement("div");
+  cabecera.className = "cabecera";
+
+  const titulo = document.createElement("h2");
+  titulo.className = "nombre";
+  titulo.textContent = mon.nombre;
+  if (mon.vigila) {
+    const sub = document.createElement("span");
+    sub.className = "que-vigila";
+    sub.textContent = mon.vigila;
+    titulo.appendChild(sub);
+  }
+
+  const pill = document.createElement("span");
+  pill.className = `pill ${estado.clase}`;
+  const punto = document.createElement("span");
+  punto.className = "punto";
+  pill.append(punto, document.createTextNode(estado.texto));
+
+  const desde = document.createElement("span");
+  desde.className = "desde";
+  desde.textContent = estado.edad != null ? haceCuanto(estado.edad) : "—";
+
+  cabecera.append(titulo, pill, desde);
+
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "cuerpo";
+
+  const resumen = document.createElement("p");
+  resumen.className = "resumen" + (fallando ? " mal" : hayCupo ? " hay" : "");
+  resumen.textContent = latido ? datos.resumen : "Sin datos";
+  cuerpo.appendChild(resumen);
+
+  const nota = !latido ? estado.nota
+             : fallando ? (datos.error ? `Último error: ${datos.error}` : estado.nota)
+             : estado.nota;
+  if (nota) {
+    const p = document.createElement("p");
+    p.className = "nota";
+    p.textContent = nota;
+    cuerpo.appendChild(p);
+  }
+
+  if (hayCupo) {
+    const lista = document.createElement("div");
+    lista.className = "dias";
+    for (const d of datos.detalle) {
+      const fila = document.createElement("div");
+      fila.className = "dia";
+      const fecha = document.createElement("span");
+      fecha.className = "fecha";
+      fecha.textContent = formatearFecha(d.fecha);
+      const horas = document.createElement("div");
+      horas.className = "horas";
+      for (const h of (d.horas || [])) {
+        const chip = document.createElement("span");
+        chip.className = "hora";
+        chip.textContent = h;
+        horas.appendChild(chip);
+      }
+      fila.append(fecha, horas);
+      lista.appendChild(fila);
+    }
+    cuerpo.appendChild(lista);
+  }
+
+  tarjeta.append(cabecera, cuerpo);
+  return tarjeta;
+}
+
+function pintarAvisos(avisos) {
+  const seccion = $("seccion-avisos");
+  const cont = $("avisos");
+  seccion.hidden = false;
+  cont.textContent = "";
+
+  if (!avisos.length) {
+    const v = document.createElement("div");
+    v.className = "vacio";
+    v.textContent = "Nada se liberó en las últimas 12 horas.";
+    cont.appendChild(v);
+    return;
+  }
+
+  const lista = document.createElement("div");
+  lista.className = "avisos";
+  for (const a of avisos.slice(0, 12)) {
+    const fila = document.createElement("div");
+    fila.className = "aviso";
+    const t = document.createElement("time");
+    const d = new Date(a.time * 1000);
+    t.dateTime = d.toISOString();
+    t.textContent = d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+    const caja = document.createElement("div");
+    const h = document.createElement("h3");
+    h.textContent = a.title || "Aviso";
+    const p = document.createElement("p");
+    p.textContent = a.message || "";
+    caja.append(h, p);
+    fila.append(t, caja);
+    lista.appendChild(fila);
+  }
+  cont.appendChild(lista);
+}
+
+/* ---------- ciclo ---------- */
+
+let VIGIAS = null;
+
+async function actualizar() {
+  if (!VIGIAS) return;
+  const boton = $("recargar");
+  boton.setAttribute("aria-busy", "true");
+  boton.textContent = "Actualizando…";
+  const cajaError = $("error");
+
+  try {
+    const porMonitor = await Promise.all(
+      VIGIAS.map(async (mon) => {
+        const mensajes = await leerTopic(mon.topic);
+        const latidos = mensajes
+          .filter((m) => m.title === "hb")
+          .map((m) => { try { return Object.assign({}, m, { datos: JSON.parse(m.message) }); } catch { return null; } })
+          .filter(Boolean)
+          .sort((a, b) => a.time - b.time);
+        const avisos = mensajes.filter((m) => m.title !== "hb");
+        return { mon, latido: latidos.length ? latidos[latidos.length - 1] : null, avisos };
+      })
+    );
+
+    cajaError.hidden = true;
+    const cont = $("monitores");
+    cont.textContent = "";
+    for (const p of porMonitor) {
+      cont.appendChild(pintarMonitor(p.mon, p.latido, evaluar(p.mon, p.latido)));
+    }
+
+    const todos = [];
+    for (const p of porMonitor) todos.push.apply(todos, p.avisos);
+    pintarAvisos(todos.sort((a, b) => b.time - a.time));
+
+    $("sello").textContent =
+      "leído " + new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+  } catch (err) {
+    cajaError.hidden = false;
+    cajaError.className = "alerta-red";
+    cajaError.textContent =
+      `No pude leer ntfy (${err.message}). Revisá la conexión; reintento en un minuto.`;
+  } finally {
+    boton.removeAttribute("aria-busy");
+    boton.textContent = "Actualizar";
+  }
+}
+
+function arrancar(vigias) {
+  VIGIAS = vigias;
+  ocultarConfig();
+  actualizar();
+}
+
+$("guardar").addEventListener("click", () => {
+  try {
+    const v = validar(JSON.parse($("config-texto").value));
+    if (!guardarConfig(v)) throw new Error("este navegador no me deja guardar (¿modo privado?)");
+    arrancar(v);
+  } catch (err) {
+    $("config-error").textContent = err.message;
+  }
+});
+
+$("cancelar").addEventListener("click", () => {
+  const actual = leerConfig();
+  if (actual) arrancar(actual);
+});
+
+$("ajustes").addEventListener("click", () => mostrarConfig(leerConfig()));
+$("recargar").addEventListener("click", actualizar);
+
+const desdeURL = configDesdeURL();
+if (desdeURL) {
+  guardarConfig(desdeURL);
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
+const guardados = leerConfig();
+if (guardados) arrancar(guardados);
+else mostrarConfig(null);
+
+setInterval(actualizar, 60000);
+</script>
+</body>
+</html>
